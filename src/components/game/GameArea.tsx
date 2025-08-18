@@ -8,8 +8,6 @@ import useLight from "./hooks/useLight";
 import useProgress from "./hooks/useProgress";
 import { GameStateenum } from "@/utils/types/game";
 
-
-
 type GameAreaProps = {
   setScore: (score: number) => void;
   setTime: (time: number) => void;
@@ -28,15 +26,16 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
   const [isHolding, setIsHolding] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameResult, setGameResult] = useState<GameStateenum>(GameStateenum.PLAYING);
-  // uplifting the state 
+  
+  // Uplifting the state
   useEffect(() => {
     setScore(progress);
     setTime(timer);
     setState(gameResult);
-  }, [progress, timer, gameResult]);
+  }, [progress, timer, gameResult, setScore, setTime, setState]);
 
-  // Mouse events
-  const handleMouseDown = () => {
+  // Handle both mouse and touch start events
+  const handleStart = () => {
     if (!gameStarted && gameResult === GameStateenum.PLAYING) {
       setGameStarted(true);
       startTimer();
@@ -45,7 +44,8 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
     setIsHolding(true);
   };
 
-  const handleMouseUp = () => {
+  // Handle both mouse and touch end events
+  const handleEnd = () => {
     setIsHolding(false);
     stopProgress();
   };
@@ -69,7 +69,7 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
       stopTimer();
       stopLightCycle();
     }
-  }, [isHolding, gameState, gameResult]);
+  }, [isHolding, gameState, gameResult, startProgress, stopLightCycle, stopTimer]);
 
   // Auto game over at 60s
   useEffect(() => {
@@ -79,15 +79,7 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
       stopTimer();
       stopLightCycle();
     }
-  }, [timer, gameResult]);
-
-  // // Auto redirect when won
-  // useEffect(() => {
-  //   if (gameResult === "won") {
-  //     const timeout = setTimeout(() => router.push("/leaderboard"), 3000);
-  //     return () => clearTimeout(timeout);
-  //   }
-  // }, [gameResult, router]);
+  }, [timer, gameResult, stopLightCycle, stopTimer]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6">
@@ -150,22 +142,24 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
 
       {/* Button */}
       <button
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        disabled={gameResult !== "playing"}
+        onMouseDown={handleStart}
+        onMouseUp={handleEnd}
+        onMouseLeave={handleEnd}
+        onTouchStart={handleStart}
+        onTouchEnd={handleEnd}
+        disabled={gameResult !== GameStateenum.PLAYING}
         className={`relative w-40 h-40 rounded-full border-4 ${
           isHolding
             ? "bg-emerald-500/20 border-emerald-400 scale-95 shadow-lg"
             : "bg-slate-700/50 border-slate-600 hover:border-slate-500"
-        } ${gameResult !== "playing" ? "opacity-50 cursor-not-allowed" : ""}`}
+        } ${gameResult !== GameStateenum.PLAYING ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <Hand size={50} />
           <div className="text-lg font-semibold">TAP & HOLD</div>
           <div className="text-sm text-slate-400">TO MOVE</div>
         </div>
-        {isHolding && gameResult === "playing" && (
+        {isHolding && gameResult === GameStateenum.PLAYING && (
           <div className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-ping opacity-75" />
         )}
       </button>

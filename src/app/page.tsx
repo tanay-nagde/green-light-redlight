@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
+console.log("env", process.env.apiKey)
 
 const Home = () => {
   return (

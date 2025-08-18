@@ -1,10 +1,26 @@
-import admin from "firebase-admin";
+import admin, { ServiceAccount } from "firebase-admin";
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)),
-    databaseURL: process.env.FIREBASE_DB_URL
-  });
+const serviceAccount: ServiceAccount = {
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY,
+};
+
+const databaseURL = "https://(default).firebaseio.com";
+
+export function getFirebaseAdmin() {
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL,
+    });
+  }
+
+  return admin;
 }
 
-export const db = admin.firestore();
+const firebaseAdmin = getFirebaseAdmin();
+
+const db = firebaseAdmin.firestore();
+
+export default db;

@@ -2,7 +2,7 @@ import React from 'react'
 import { Trophy, Medal, Award} from 'lucide-react';
 
 const LeaderboardList = () => {
-      const getRankIcon = (rank) => {
+      const getRankIcon = (rank:any) => {
     switch(rank) {
       case 1: return <Trophy className="w-6 h-6 text-yellow-400" />;
       case 2: return <Medal className="w-6 h-6 text-gray-300" />;
@@ -11,7 +11,7 @@ const LeaderboardList = () => {
     }
   };
 
-  const getRankBg = (rank) => {
+  const getRankBg = (rank:any) => {
     switch(rank) {
       case 1: return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
       case 2: return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";

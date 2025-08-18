@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import  db  from "@/utils/Db";
-import { Player, LeaderboardEntry } from "@/utils/types/game";
+import { Player } from "@/utils/types/game";
 
 export async function GET(req: NextRequest) {
     try {

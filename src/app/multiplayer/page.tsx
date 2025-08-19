@@ -67,7 +67,7 @@ const MultiplayerPage = () => {
       const { playerId } = data;
 
       // If successful, navigate to the game page with both IDs
-      router.push(`/multiplayer/${sessionId}?playerId=${playerId}`);
+      router.push(`/multiplayer/${sessionId}?playerId=${playerId}&name=${encodeURIComponent(username)}`);
 
     } catch (err) {
       console.error("Error joining session:", err);

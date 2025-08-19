@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import  db  from "@/utils/Db";
-import { Player } from "@/utils/types/game";
+import { GameStateenum, Player } from "@/utils/types/game";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
     try {
-        const url = new URL(req.url);
-        const gameId = url.searchParams.get("gameId");
+
+        const {gameId} = await req.json() as {gameId: string};
 
         if (!gameId) {
             return NextResponse.json({ error: "gameId is required" }, { status: 400 });
@@ -14,20 +14,11 @@ export async function GET(req: NextRequest) {
         const playersSnap = await db.collection("games").doc(gameId).collection("players").get();
         const players = playersSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as Player) }));
 
-        const onlineCount = players.filter(p => p.status === "playing").length;
-        const eliminatedCount = players.filter(p => p.status === "eliminated").length;
+        const onlineCount = players.filter(p => p.status === GameStateenum.PLAYING).length;
+        const eliminatedCount = players.filter(p => p.status === GameStateenum.OVER).length;
 
-        const leaderboard = players
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10)
-            .map(p => ({
-                id: p.id,
-                name: p.name,
-                score: p.score,
-                timer: p.timer || null // Add timer to leaderboard if it exists
-            }));
-
-        return NextResponse.json({ onlineCount, eliminatedCount, leaderboard });
+      
+        return NextResponse.json({ onlineCount, eliminatedCount });
 
     } catch (error) {
         console.error("API error:", error);

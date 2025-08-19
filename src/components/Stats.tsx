@@ -1,22 +1,40 @@
-import React from 'react'
+"use client";
 
-const Stats = () => {
-  return (
-      <div className="grid grid-cols-3 gap-4 p-6 max-w-4xl mx-auto">
-        <div className="bg-[#1F2A38] rounded-xl p-4 text-center border border-slate-700/50">
-          <div className="text-2xl font-bold text-emerald-400">127</div>
-          <div className="text-sm text-gray-400">Active Players</div>
-        </div>
-        <div className="bg-[#1F2A38] rounded-xl p-4 text-center border border-slate-700/50">
-          <div className="text-2xl font-bold text-emerald-400">2,847</div>
-          <div className="text-sm text-gray-400">Best Score</div>
-        </div>
-        <div className="bg-[#1F2A38] rounded-xl p-4 text-center border border-slate-700/50">
-          <div className="text-2xl font-bold text-emerald-400">2:34</div>
-          <div className="text-sm text-gray-400">Best Time</div>
-        </div>
-      </div>
-  )
+import React from "react";
+
+interface StatsProps {
+  totalOnline: number;
+  bestTime: number | null;
 }
 
-export default Stats
+const Stats: React.FC<StatsProps> = ({ totalOnline, bestTime }) => {
+  const hardcodedBestScore = 100; // ✅ Hardcoded best score
+
+  return (
+    <div className="p-4 bg-slate-800/50 rounded-xl my-4 max-w-4xl mx-auto">
+      <div className="flex justify-between space-x-8">
+        {/* Online Players */}
+        <div>
+          <div className="text-gray-400 text-sm">Online Players</div>
+          <div className="text-white font-bold text-xl">{totalOnline}</div>
+        </div>
+
+        {/* Best Time */}
+        <div>
+          <div className="text-gray-400 text-sm">Best Time</div>
+          <div className="text-white font-bold text-xl">
+            {bestTime != null ? `${bestTime}s` : "N/A"}
+          </div>
+        </div>
+
+        {/* Hardcoded Best Score */}
+        <div>
+          <div className="text-gray-400 text-sm">Best Score</div>
+          <div className="text-white font-bold text-xl">{hardcodedBestScore}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Stats;

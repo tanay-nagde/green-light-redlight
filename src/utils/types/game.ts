@@ -1,5 +1,4 @@
 export type GameStatus = "active" | "finished";
-export type PlayerStatus = "playing" | "eliminated" | "won";
 export enum GameStateenum
 {
   WON = "won",
@@ -18,7 +17,7 @@ export interface Game {
 export interface Player {
   name: string;
   score: number;
-  status: PlayerStatus;
+  status: GameStateenum;
   lastSeen: number;
   // The time taken to win the game, in milliseconds.
   // This field is optional because it only applies to the winning player.

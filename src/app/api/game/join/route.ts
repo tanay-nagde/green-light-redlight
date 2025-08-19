@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/utils/Db";
 import { v4 as uuidv4 } from "uuid";
-import { Player } from "@/utils/types/game";
+import { GameStateenum, Player } from "@/utils/types/game";
 
 
 /**
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const newPlayer: Player = {
       name,
       score: 0,
-      status: "playing",
+      status: GameStateenum.PLAYING,
       lastSeen: Date.now()
     };
 

@@ -4,6 +4,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/game/Navbar";
 import GameArea from "@/components/game/GameArea";
 import { GameStateenum } from "@/utils/types/game";
+import { useDebounce } from "@/components/game/hooks/useDebounce";
 
 const Page = () => {
   const params = useParams();
@@ -12,13 +13,16 @@ const Page = () => {
 
   const sessionId = (params.session as string) || "";
   const playerId = searchParams.get("playerId") || "";
+  const playername = searchParams.get("name") || "";
 
   const [score, setScore] = useState(0);
   const [time, setTime] = useState(0);
   const [state, setState] = useState<GameStateenum>(GameStateenum.PLAYING);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [eliminatedCount, setEliminatedCount] = useState(0);
 
   // Dialog state
-  const [name, setName] = useState("");
+  const [name, setName] = useState(playername);
   const [showDialog, setShowDialog] = useState(!playerId); // open dialog if no playerId
   const [loading, setLoading] = useState(false);
 
@@ -49,11 +53,51 @@ const Page = () => {
     }
   };
 
+const updateScore = useDebounce(() => {
+    fetch('/api/game/update', {
+      method: 'POST',
+      body: JSON.stringify({ score, timer: time, status:state, playerId, gameId: sessionId }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }, 500);
+
+const getStats = async () => {
+  const res = await fetch('/api/game/stats', {
+    method: 'POST',
+    body: JSON.stringify({ gameId: sessionId }),
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!res.ok) {
+    console.error("Failed to fetch game stats");
+    return;
+  }
+
+  const { onlineCount, eliminatedCount } = await res.json();
+
+  setOnlineCount(prev => prev !== onlineCount ? onlineCount : prev);
+  setEliminatedCount(prev => prev !== eliminatedCount ? eliminatedCount : prev);
+};
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    getStats();
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, []);
+
+  useEffect(() => {
+    updateScore(); // Call the debounced function
+  }, [score, state ]);
+
   // Auto redirect after game ends
   useEffect(() => {
     if (state === GameStateenum.OVER || state === GameStateenum.WON) {
       const timer = setTimeout(() => {
-        router.push(`/multiplayer/${sessionId}/leaderboard`);
+        router.push(`/multiplayer/${sessionId}/leaderboard?playerId=${playerId}`);
       }, 4000);
       return () => clearTimeout(timer);
     }
@@ -61,7 +105,7 @@ const Page = () => {
 
   return (
     <>
-      <Navbar userName={name || "Player"} playersOnline={5} />
+      <Navbar userName={name} playersOnline={onlineCount} playersEliminated={eliminatedCount} />
 
       {/* Show game area while playing */}
       {state === GameStateenum.PLAYING ? (
@@ -75,7 +119,7 @@ const Page = () => {
           <p className="text-lg text-gray-300 mb-6">Final Score: {score}</p>
           <button
             onClick={() =>
-              router.push(`/multiplayer/${sessionId}/leaderboard`)
+              router.push(`/multiplayer/${sessionId}/leaderboard?playerId=${playerId}`)
             }
             className="px-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-semibold rounded-lg shadow"
           >

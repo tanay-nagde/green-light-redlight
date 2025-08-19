@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Assuming you have a server-side utility that initializes and exports
 // the Firestore database from firebase-admin.
 import db from "@/utils/Db"; // Changed import to reflect firebase-admin
-import { Player } from "@/utils/types/game";
+import { GameStateenum} from "@/utils/types/game";
 
 
 export async function POST(req: NextRequest) {
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
             gameId: string;
             playerId: string;
             score: number;
-            status: Player["status"];
+            status: GameStateenum;
             timer?: number; // Make timer optional
         };
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         };
 
         // Check if a timer was sent and the player has won
-        if (status === "won" && timer !== undefined) {
+        if (status === GameStateenum.WON && timer !== undefined) {
             updateData.timer = timer;
         }
 

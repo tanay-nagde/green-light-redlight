@@ -1,11 +1,12 @@
 "use client";
 import GameArea from "@/components/game/GameArea";
 import GameOverModal from "@/components/game/Gameover";
+import { useDebounce } from "@/components/game/hooks/useDebounce";
 
 import Navbar from "@/components/game/Navbar";
 import { GameStateenum } from "@/utils/types/game";
-import { useParams } from "next/navigation";
-import { use, useState } from "react";
+
+import { useState } from "react";
 
 const Page = () => {
 
@@ -18,7 +19,7 @@ const Page = () => {
   console.log( "Score:", score, "Time:", time, "State:", state);
   return (
     <>
-      <Navbar userName="Player1" playersOnline={1} />
+      <Navbar userName="Player1" playersOnline={1} playersEliminated={0} />
       <GameArea
         setScore={setScore}
         setTime={setTime}

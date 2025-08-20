@@ -1,27 +1,56 @@
-import { NextRequest, NextResponse } from "next/server";
-import  db  from "@/utils/Db";
+import { NextRequest } from "next/server";
+import db from "@/utils/Db";
 import { GameStateenum, Player } from "@/utils/types/game";
 
-export async function POST(req: NextRequest) {
-    try {
+// SSE helper
+function sendSSE(res: any, data: any) {
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
 
-        const {gameId} = await req.json() as {gameId: string};
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const gameId = searchParams.get("gameId");
 
-        if (!gameId) {
-            return NextResponse.json({ error: "gameId is required" }, { status: 400 });
-        }
+  if (!gameId) {
+    return new Response(JSON.stringify({ error: "gameId is required" }), { status: 400 });
+  }
 
-        const playersSnap = await db.collection("games").doc(gameId).collection("players").get();
-        const players = playersSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as Player) }));
+  // Create a ReadableStream for SSE
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
 
-        const onlineCount = players.filter(p => p.status === GameStateenum.PLAYING).length;
-        const eliminatedCount = players.filter(p => p.status === GameStateenum.OVER).length;
+      // Firestore real-time listener
+      const unsubscribe = db
+        .collection("games")
+        .doc(gameId)
+        .collection("players")
+        .onSnapshot((snapshot) => {
+          const players = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Player) }));
+          const onlineCount = players.filter(p => p.status === GameStateenum.PLAYING).length;
+          const eliminatedCount = players.filter(p => p.status === GameStateenum.OVER).length;
 
-      
-        return NextResponse.json({ onlineCount, eliminatedCount });
+          const payload = { onlineCount, eliminatedCount, players };
 
-    } catch (error) {
-        console.error("API error:", error);
-        return NextResponse.json({ error: "An error occurred" }, { status: 500 });
+          // Send SSE data
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        }, (error) => {
+          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ error: error.message })}\n\n`));
+        });
+
+      // Cleanup when client disconnects
+      req.signal.addEventListener("abort", () => {
+        unsubscribe();
+        controller.close();
+      });
     }
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
 }

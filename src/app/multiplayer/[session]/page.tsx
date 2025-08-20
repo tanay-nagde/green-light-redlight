@@ -63,35 +63,39 @@ const updateScore = useDebounce(() => {
     });
   }, 500);
 
-const getStats = async () => {
-  const res = await fetch('/api/game/stats', {
-    method: 'POST',
-    body: JSON.stringify({ gameId: sessionId }),
-    headers: { 'Content-Type': 'application/json' },
-  });
 
-  if (!res.ok) {
-    console.error("Failed to fetch game stats");
-    return;
-  }
 
-  const { onlineCount, eliminatedCount } = await res.json();
 
-  setOnlineCount(prev => prev !== onlineCount ? onlineCount : prev);
-  setEliminatedCount(prev => prev !== eliminatedCount ? eliminatedCount : prev);
-};
-
-useEffect(() => {
-  const interval = setInterval(() => {
-    getStats();
-  }, 5000);
-
-  return () => clearInterval(interval);
-}, []);
 
   useEffect(() => {
     updateScore(); // Call the debounced function
   }, [score, state ]);
+
+  // fetch stats from sse eventsource
+  useEffect(() => {
+  // Create an EventSource connection to the SSE endpoint
+  const eventSource = new EventSource(`/api/game/stats?gameId=${sessionId}`);
+
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      setOnlineCount(data.onlineCount);
+      setEliminatedCount(data.eliminatedCount);
+    } catch (err) {
+      console.error("Failed to parse SSE data:", err);
+    }
+  };
+
+  eventSource.onerror = (err) => {
+    console.error("SSE connection error:", err);
+    eventSource.close(); // Close on error
+  };
+
+  // Cleanup when component unmounts
+  return () => {
+    eventSource.close();
+  };
+}, [sessionId]);
 
   // Auto redirect after game ends
   useEffect(() => {

@@ -26,15 +26,16 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
   const [isHolding, setIsHolding] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameResult, setGameResult] = useState<GameStateenum>(GameStateenum.PLAYING);
-  
-  // Uplifting the state
+  const [progressRunning, setProgressRunning] = useState(false);
+
+  // Uplift the state
   useEffect(() => {
     setScore(progress);
     setTime(timer);
     setState(gameResult);
   }, [progress, timer, gameResult, setScore, setTime, setState]);
 
-  // Handle both mouse and touch start events
+  // Handle hold start
   const handleStart = () => {
     if (!gameStarted && gameResult === GameStateenum.PLAYING) {
       setGameStarted(true);
@@ -44,7 +45,7 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
     setIsHolding(true);
   };
 
-  // Handle both mouse and touch end events
+  // Handle hold end
   const handleEnd = () => {
     setIsHolding(false);
     stopProgress();
@@ -52,24 +53,35 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
 
   // Handle holding logic
   useEffect(() => {
-    if (!isHolding || gameResult !== GameStateenum.PLAYING) return;
+    if (!isHolding || gameResult !== GameStateenum.PLAYING) {
+      if (progressRunning) {
+        stopProgress();
+        setProgressRunning(false);
+      }
+      return;
+    }
 
-    if (gameState === "green") {
+    if (gameState === "green" && !progressRunning) {
+      setProgressRunning(true);
       startProgress((val) => {
         if (val >= 100) {
           setGameResult(GameStateenum.WON);
           setGameStarted(false);
           stopTimer();
           stopLightCycle();
+          stopProgress();
+          setProgressRunning(false);
         }
       });
     } else if (gameState === "red") {
+      stopProgress();
+      setProgressRunning(false);
       setGameResult(GameStateenum.OVER);
       setGameStarted(false);
       stopTimer();
       stopLightCycle();
     }
-  }, [isHolding, gameState, gameResult, startProgress, stopLightCycle, stopTimer]);
+  }, [isHolding, gameState, gameResult, startProgress, stopProgress, stopLightCycle, stopTimer, progressRunning]);
 
   // Auto game over at 60s
   useEffect(() => {
@@ -78,8 +90,10 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
       setGameStarted(false);
       stopTimer();
       stopLightCycle();
+      stopProgress();
+      setProgressRunning(false);
     }
-  }, [timer, gameResult, stopLightCycle, stopTimer]);
+  }, [timer, gameResult, stopLightCycle, stopTimer, stopProgress]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6">
@@ -112,7 +126,9 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
       {/* Status */}
       <div className="text-center mb-10">
         <div
-          className={`text-3xl font-bold ${gameState === "green" ? "text-emerald-400" : "text-red-400"}`}
+          className={`text-3xl font-bold ${
+            gameState === "green" ? "text-emerald-400" : "text-red-400"
+          }`}
         >
           {gameState === "green" ? "GREEN LIGHT" : "RED LIGHT"}
         </div>
@@ -142,11 +158,10 @@ const GameArea: React.FC<GameAreaProps> = ({ setScore, setTime, setState }) => {
 
       {/* Button */}
       <button
-        onMouseDown={handleStart}
-        onMouseUp={handleEnd}
-        onMouseLeave={handleEnd}
-        onTouchStart={handleStart}
-        onTouchEnd={handleEnd}
+        onPointerDown={handleStart}
+        onPointerUp={handleEnd}
+        onPointerLeave={handleEnd}
+        onPointerCancel={handleEnd}
         disabled={gameResult !== GameStateenum.PLAYING}
         className={`relative w-40 h-40 rounded-full border-4 ${
           isHolding

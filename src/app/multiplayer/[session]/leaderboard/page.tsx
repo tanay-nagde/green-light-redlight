@@ -28,68 +28,48 @@ const Page = () => {
   const [totalOnline, setTotalOnline] = useState<number>(0);
   const [bestTime, setBestTime] = useState<number | null>(null);
 
-  // Fetch leaderboard and determine player rank + best timer
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await fetch("/api/game/leaderboard", {
-        method: "POST",
-        body: JSON.stringify({ gameId: sessionId, playerId }),
-        headers: { "Content-Type": "application/json" },
-      });
+  useEffect(() => {
+    if (!sessionId || !playerId) return;
 
-      if (!res.ok) {
-        console.error("Failed to fetch leaderboard");
-        return;
-      }
+    setLoading(true);
 
-      const data = await res.json();
+    const sseUrl = `/api/game/leaderboard?gameId=${sessionId}&playerId=${playerId}`;
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
       const topPlayers: LeaderboardItem[] = data.leaderboard || [];
       setLeaderboard(topPlayers);
-      setPlayer(data.player || null);
 
-      // Player rank
+      const currentPlayer: LeaderboardItem | null = data.player || null;
+      setPlayer(currentPlayer);
+
+      // Player rank in the top 25
       const rankIndex = topPlayers.findIndex((p) => p.playerId === playerId);
       setPlayerRank(rankIndex >= 0 ? rankIndex + 1 : null);
 
-      // Best time among top players who have finished
+      // Best time among finished players
       const finishedPlayers = topPlayers.filter((p) => p.timer != null);
       const minTime = finishedPlayers.length
         ? Math.min(...finishedPlayers.map((p) => p.timer!))
         : null;
       setBestTime(minTime);
-    } catch (err) {
-      console.error("Error fetching leaderboard:", err);
-    } finally {
+
+      setTotalOnline(topPlayers.length); // optional, or get from separate SSE
       setLoading(false);
-    }
-  };
+    };
 
-  // Fetch total players from backend
-  const fetchTotalPlayers = async () => {
-    try {
-      const res = await fetch("/api/game/totalplayer", {
-        method: "POST",
-        body: JSON.stringify({ gameId: sessionId }),
-        headers: { "Content-Type": "application/json" },
-      });
+    eventSource.onerror = (err) => {
+      console.error("SSE error:", err);
+      eventSource.close();
+      setLoading(false);
+    };
 
-      if (!res.ok) {
-        console.error("Failed to fetch total players");
-        return;
-      }
-
-      const data = await res.json();
-      setTotalOnline(data.totalPlayers || 0);
-    } catch (err) {
-      console.error("Error fetching total players:", err);
-    }
-  };
-
-  useEffect(() => {
-    if (!sessionId || !playerId) return;
-
-    fetchLeaderboard();
-    fetchTotalPlayers();
+    // Cleanup on unmount
+    return () => {
+      eventSource.close();
+    };
   }, [sessionId, playerId]);
 
   return (
@@ -131,16 +111,13 @@ const Page = () => {
               <div>
                 <div className="font-semibold">Your Rank</div>
                 <div className="text-sm text-gray-400">
-                  {playerRank ? `#${playerRank}` : "Not in Top 10"} —{" "}
-                  {player.name ?? player.playerId} ({player.state})
+                  {playerRank ? `#${playerRank}` : "Not in Top 25"} — {player.name ?? player.playerId} ({player.state})
                 </div>
               </div>
             </div>
 
             <div className="text-right">
-              <div className="text-lg font-bold text-emerald-400">
-                {player.score} pts
-              </div>
+              <div className="text-lg font-bold text-emerald-400">{player.score} pts</div>
               {player.timer != null && (
                 <div className="text-sm text-gray-400">Best: {player.timer}s</div>
               )}
